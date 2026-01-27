@@ -1,0 +1,3 @@
+# NOEMVEX-WEB v1.0 Dependencies
+requests>=2.31.0
+
