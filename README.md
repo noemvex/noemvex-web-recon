@@ -1,4 +1,4 @@
-# NOEMVEX-WEB v1.0 [HUNTER EDITION]
+# NOEMVEX-WEB-RECON v1.0 [WEB RECON EDITION]
 ![Python](https://img.shields.io/badge/Python-3.x-blue) ![License](https://img.shields.io/badge/License-MIT-grey) ![Focus](https://img.shields.io/badge/Focus-Web%20Recon-yellow) ![Type](https://img.shields.io/badge/Edition-Red%20Edition-red)
 
 > **"Hunt the Assets, Map the Surface."**
@@ -27,8 +27,8 @@ pip install requests
 
 ### 2. Execution
 # Clone the Hunter Engine
-git clone https://github.com/noemvex/NOEMVEX-WEB.git
-cd NOEMVEX-WEB
+git clone https://github.com/noemvex/noemvex-web-recon.git
+cd noemvex-web-recon
 
 # Run recon against a target domain
 python3 noemvex_web.py -u example.com
