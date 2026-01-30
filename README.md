@@ -27,7 +27,7 @@ pip install requests
 
 ### 2. Execution
 # Clone the Hunter Engine
-git clone https://github.com/noemvex/NOEMVEX-WEB.git
+git clone https://github.com/noemvex/noemvex-web-recon.git
 cd NOEMVEX-WEB
 
 # Run recon against a target domain
