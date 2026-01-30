@@ -1,4 +1,4 @@
-# NOEMVEX-WEB-RECON v1.0 [WEB RECON EDITION]
+# NOEMVEX-WEB v1.0 [HUNTER EDITION]
 ![Python](https://img.shields.io/badge/Python-3.x-blue) ![License](https://img.shields.io/badge/License-MIT-grey) ![Focus](https://img.shields.io/badge/Focus-Web%20Recon-yellow) ![Type](https://img.shields.io/badge/Edition-Red%20Edition-red)
 
 > **"Hunt the Assets, Map the Surface."**
@@ -27,8 +27,8 @@ pip install requests
 
 ### 2. Execution
 # Clone the Hunter Engine
-git clone https://github.com/noemvex/noemvex-web-recon.git
-cd noemvex-web-recon
+git clone https://github.com/noemvex/NOEMVEX-WEB.git
+cd NOEMVEX-WEB
 
 # Run recon against a target domain
 python3 noemvex_web.py -u example.com
@@ -37,13 +37,13 @@ python3 noemvex_web.py -u example.com
 
 ##  Output Preview
 
-    _   _  ____  ______ __  __ __      __ ______  __   __
-    | \ | |/ __ \|  ____|  \/  |\ \    / /|  ____|\ \ / /
-    |  \| | |  | | |__  | \  / | \ \  / / | |__    \ V / 
-    | . ` | |  | |  __| | |\/| |  \ \/ /  |  __|    > <  
-    | |\  | |__| | |____| |  | |   \  /   | |____  / . \ 
-    |_| \_|\____/|______|_|  |_|    \/    |______|/_/ \_\
-                   [ WEB RECON EDITION v1.0 ]
+    ███╗   ██╗ ██████╗ ███████╗███╗   ███╗██╗   ██╗███████╗██╗  ██╗
+    ████╗  ██║██╔═══██╗██╔════╝████╗ ████║██║   ██║██╔════╝╚██╗██╔╝
+    ██╔██╗ ██║██║   ██║█████╗  ██╔████╔██║██║   ██║█████╗   ╚███╔╝ 
+    ██║╚██╗██║██║   ██║██╔══╝  ██║╚██╔╝██║╚██╗ ██╔╝██╔══╝   ██╔██╗ 
+    ██║ ╚████║╚██████╔╝███████╗██║ ╚═╝ ██║ ╚████╔╝ ███████╗██╗  ██╗
+    ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚═╝     ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+                   [ NOEMVEX WEB RECON V1.0 HUNTER EDITION ]
 
     [+] Target is UP: https://example.com (Status: 200)
 
