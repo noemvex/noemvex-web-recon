@@ -2,19 +2,29 @@
 # -*- coding: utf-8 -*-
 
 """
-NOEMVEX-WEB v1.0: Hunter Edition
+NOEMVEX-WEB v1.1: Stealth Hunter Edition (Final)
 Author: Emre 'noemvex' Sahin
 License: MIT
-Description: Lightweight Web Reconnaissance engine. Automates passive subdomain enumeration (crt.sh), security header analysis, and sensitive file discovery.
+Description: Advanced Web Reconnaissance engine. Features:
+1. Hybrid Subdomain Discovery (Passive + Active Fallback)
+2. Smart Protocol Fallback (Auto-downgrade HTTPS -> HTTP)
+3. WAF Evasion (User-Agent Spoofing)
+4. Wildcard DNS Detection & Smart Fuzzing
 """
 
 import argparse
 import requests
 import sys
+import socket
+import urllib3
 from concurrent.futures import ThreadPoolExecutor
 
-# --- STANDARD UI CLASS (Unified Noemvex Design System) ---
+# Disable SSL Warnings for cleaner output (Essential for older targets)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+## --- STANDARD UI CLASS ---
 class UI:
+    PURPLE = '\033[95m'  
     CYAN = '\033[96m'
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
@@ -26,26 +36,41 @@ class UI:
 
     @staticmethod
     def banner():
-        print(f"{UI.RED}{UI.BOLD}")
-        print("  _   _  ____  ______ __  __ __      __ ______  __   __")
-        print(" | \ | |/ __ \|  ____|  \/  |\ \    / /|  ____|\ \ / /")
-        print(" |  \| | |  | | |__  | \  / | \ \  / / | |__    \ V / ")
-        print(" | . ` | |  | |  __| | |\/| |  \ \/ /  |  __|    > <  ")
-        print(" | |\  | |__| | |____| |  | |   \  /   | |____  / . \ ")
-        print(" |_| \_|\____/|______|_|  |_|    \/    |______|/_/ \_\\")
-        print(f"               {UI.YELLOW}[ WEB RECON EDITION v1.0 ]{UI.END}\n")
+        ascii_art = [
+            r"███╗   ██╗ ██████╗ ███████╗███╗   ███╗██╗   ██╗███████╗██╗  ██╗",
+            r"████╗  ██║██╔═══██╗██╔════╝████╗ ████║██║   ██║██╔════╝╚██╗██╔╝",
+            r"██╔██╗ ██║██║   ██║█████╗  ██╔████╔██║██║   ██║█████╗   ╚███╔╝ ",
+            r"██║╚██╗██║██║   ██║██╔══╝  ██║╚██╔╝██║╚██╗ ██╔╝██╔══╝   ██╔██╗ ",
+            r"██║ ╚████║╚██████╔╝███████╗██║ ╚═╝ ██║ ╚████╔╝ ███████╗██╗  ██╗",
+            r"╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚═╝     ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝"
+        ]
+        
+        print(f"{UI.GREEN}{UI.BOLD}")
+        for line in ascii_art:
+            print(line)
+        print(f"               {UI.PURPLE}[ NOEMVEX WEB RECON V1.1 STEALTH HUNTER EDITION ]{UI.END}\n")
 
-# --- TARGET CONFIGURATION ---
-CRITICAL_FILES = [
+# --- DEFAULT CONFIGURATION ---
+DEFAULT_FILES = [
     ".env", ".git/HEAD", "config.php", "wp-config.php", ".htaccess", 
     "backup.sql", "admin/", "login.php", "dashboard/", "robots.txt",
-    "sitemap.xml", "id_rsa", "users.json", "docker-compose.yml"
+    "sitemap.xml", "id_rsa", "users.json", "docker-compose.yml", "web.config"
+]
+
+# Fallback list for Active Enumeration
+FALLBACK_SUBS = [
+    "www", "mail", "remote", "blog", "webmail", "server", "ns1", "ns2", "smtp", "secure",
+    "vpn", "m", "shop", "ftp", "mail2", "test", "portal", "ns", "ww1", "host",
+    "support", "dev", "web", "bbs", "ww42", "mx", "email", "cloud", "1", "mail1",
+    "2", "forum", "owa", "www2", "gw", "admin", "store", "mx1", "cdn", "api",
+    "exchange", "app", "gov", "news", "sv", "labs"
 ]
 
 class WebHunter:
-    def __init__(self, target):
-        # Senior Fix: Normalize URL and strip trailing slashes to prevent URL doubling
+    def __init__(self, target, wordlist=None):
+        # Intelligent URL Normalization
         target = target.strip().lower()
+        # Default to HTTPS, fallback logic will handle issues
         if not target.startswith("http"):
             self.base_url = f"https://{target}".rstrip('/')
             self.domain = target.split('/')[0]
@@ -53,32 +78,63 @@ class WebHunter:
             self.base_url = target.rstrip('/')
             self.domain = target.replace("https://", "").replace("http://", "").split("/")[0]
 
+        self.wordlist = wordlist
         self.session = requests.Session()
-        self.session.headers.update({'User-Agent': 'Noemvex-WebHunter/1.0'})
+        
+        # --- WAF EVASION HEADERS (STEALTH MODE) ---
+        # Mimics a real Windows 10 Chrome User to bypass 403 blocks
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+        })
 
     def check_connection(self):
-        """Verifies target availability."""
+        """Verifies target availability with Smart Protocol Fallback (HTTPS -> HTTP)."""
         try:
-            r = self.session.get(self.base_url, timeout=10)
+            print(f"{UI.GREY}[*] Checking connection to {self.base_url}...{UI.END}")
+            # Try HTTPS first (or whatever user provided)
+            r = self.session.get(self.base_url, timeout=10, verify=False)
             print(f"{UI.GREEN}[+] Target is UP: {self.base_url} (Status: {r.status_code}){UI.END}")
             return True
-        except requests.exceptions.RequestException:
-            print(f"{UI.RED}[!] Target is DOWN or unreachable: {self.base_url}{UI.END}")
+
+        except requests.exceptions.RequestException as e:
+            # If HTTPS fails, try downgrading to HTTP automatically
+            if self.base_url.startswith("https://"):
+                print(f"{UI.YELLOW}[!] HTTPS failed. Attempting Protocol Downgrade (HTTP)...{UI.END}")
+                self.base_url = self.base_url.replace("https://", "http://")
+                try:
+                    r = self.session.get(self.base_url, timeout=10, verify=False)
+                    print(f"{UI.GREEN}[+] Target is UP (via HTTP): {self.base_url} (Status: {r.status_code}){UI.END}")
+                    return True
+                except requests.exceptions.RequestException:
+                    pass # Downgrade also failed
+
+            # If both fail, report detailed error
+            print(f"{UI.RED}[!] Target is DOWN or unreachable: {self.base_url}\n    Error Details: {e}{UI.END}")
+            return False
+
+    def check_wildcard(self):
+        """Pre-flight check: Detects Wildcard DNS to prevent False Positives."""
+        try:
+            random_sub = f"noemvex-wildcard-check-999.{self.domain}"
+            socket.gethostbyname(random_sub)
+            print(f"{UI.YELLOW}[!] Wildcard DNS detected! Active Brute-force might produce false positives.{UI.END}")
+            return True
+        except socket.gaierror:
             return False
 
     def analyze_headers(self):
         """Phase 1: Security Header Analysis"""
         print(f"\n{UI.CYAN}--- [ PHASE 1: HEADER SECURITY ANALYSIS ] ---{UI.END}")
         try:
-            r = self.session.get(self.base_url, timeout=10)
+            r = self.session.get(self.base_url, timeout=10, verify=False)
             headers = r.headers
             
-            security_headers = [
-                "X-Frame-Options", 
-                "Content-Security-Policy", 
-                "Strict-Transport-Security",
-                "X-XSS-Protection"
-            ]
+            security_headers = ["X-Frame-Options", "Content-Security-Policy", "Strict-Transport-Security", "X-XSS-Protection"]
 
             for h in security_headers:
                 if h in headers:
@@ -92,61 +148,107 @@ class WebHunter:
         except Exception as e:
             print(f"{UI.RED}[!] Header analysis failed: {e}{UI.END}")
 
+    def dns_brute_force(self):
+        """Active Fallback: Tries to resolve common subdomains via DNS."""
+        if self.check_wildcard():
+            print(f"{UI.RED}[-] Skipping Active Brute-Force to avoid false positive flood.{UI.END}")
+            return
+
+        print(f"{UI.YELLOW}[!] Switching to Active DNS Brute-Force (Fallback Mode)...{UI.END}")
+        found_subs = []
+        
+        def check_sub(sub):
+            full_domain = f"{sub}.{self.domain}"
+            try:
+                socket.gethostbyname(full_domain)
+                print(f"  {UI.GREEN}-> {full_domain}{UI.END}")
+                found_subs.append(full_domain)
+            except socket.gaierror:
+                pass
+
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            executor.map(check_sub, FALLBACK_SUBS)
+        
+        if not found_subs:
+            print(f"{UI.GREY}   No subdomains found in fallback list.{UI.END}")
+
     def find_subdomains(self):
-        """Phase 2: Passive Subdomain Enumeration (crt.sh)"""
-        print(f"\n{UI.CYAN}--- [ PHASE 2: PASSIVE SUBDOMAIN ENUM (crt.sh) ] ---{UI.END}")
-        print(f"{UI.GREY}[*] Querying Certificate Transparency logs...{UI.END}")
+        """Phase 2: Hybrid Discovery (Passive API -> Active Fallback)"""
+        print(f"\n{UI.CYAN}--- [ PHASE 2: HYBRID SUBDOMAIN DISCOVERY ] ---{UI.END}")
+        print(f"{UI.GREY}[*] Querying Certificate Transparency logs (Passive)...{UI.END}")
 
         try:
             url = f"https://crt.sh/?q=%25.{self.domain}&output=json"
-            # Senior Fix: Added specific timeout for external API call
-            r = requests.get(url, timeout=15)
+            r = requests.get(url, timeout=10)
             
             if r.status_code == 200:
-                data = r.json()
-                subdomains = set()
-                for entry in data:
-                    # Clean up wildcards and duplicates
-                    name = entry['name_value'].lower()
-                    if "\n" in name:
-                        for n in name.split("\n"):
-                            subdomains.add(n)
-                    else:
-                        subdomains.add(name)
+                try:
+                    data = r.json()
+                    subdomains = set()
+                    for entry in data:
+                        name = entry['name_value'].lower()
+                        if "\n" in name:
+                            for n in name.split("\n"): subdomains.add(n)
+                        else:
+                            subdomains.add(name)
 
-                for sub in sorted(subdomains):
-                    print(f"  {UI.GREEN}-> {sub}{UI.END}")
-                
-                print(f"{UI.GREEN}[+] Total Subdomains Found: {len(subdomains)}{UI.END}")
+                    if subdomains:
+                        for sub in sorted(subdomains):
+                            print(f"  {UI.GREEN}-> {sub}{UI.END}")
+                        print(f"{UI.GREEN}[+] Passive Scan: {len(subdomains)} subdomains found.{UI.END}")
+                    else:
+                        print(f"{UI.YELLOW}[!] API returned no data.{UI.END}")
+                        self.dns_brute_force()
+                except ValueError:
+                     print(f"{UI.YELLOW}[!] API returned invalid JSON.{UI.END}")
+                     self.dns_brute_force()
             else:
-                print(f"{UI.YELLOW}[!] crt.sh API unavailable (Status: {r.status_code}).{UI.END}")
+                print(f"{UI.YELLOW}[!] crt.sh API unavailable. Status: {r.status_code}{UI.END}")
+                self.dns_brute_force()
+
         except Exception as e:
-            print(f"{UI.RED}[!] Enumeration failed: {e}{UI.END}")
+            print(f"{UI.RED}[!] Passive Enumeration Failed: {e}{UI.END}")
+            self.dns_brute_force()
 
     def fuzz_file(self, file_path):
-        """Worker for file discovery."""
-        # Ensure path starts with a slash
+        """Worker for directory/file discovery with Smart Filtering."""
         path = file_path if file_path.startswith('/') else f"/{file_path}"
         url = f"{self.base_url}{path}"
+        
         try:
-            # Senior Fix: allow_redirects=False is crucial to avoid false 200s from login pages
-            r = self.session.get(url, timeout=5, allow_redirects=False)
+            # allow_redirects=False prevents false positives from 301/302 redirects
+            r = self.session.get(url, timeout=5, allow_redirects=False, verify=False)
+            
+            # Smart Filtering: Show 200 (OK), 403 (Forbidden), 401 (Auth Req)
             if r.status_code == 200:
-                print(f"{UI.RED}[CRITICAL] Found: {url} (200 OK){UI.END}")
-            elif r.status_code in [301, 302]:
-                print(f"{UI.YELLOW}[REDIRECT] Found: {url}{UI.END}")
+                size = len(r.content)
+                print(f"{UI.RED}[CRITICAL] Found: {url} (200 OK) - Size: {size}b{UI.END}")
             elif r.status_code == 403:
                 print(f"{UI.BLUE}[FORBIDDEN] Exists: {url} (403){UI.END}")
+            elif r.status_code == 401:
+                print(f"{UI.YELLOW}[AUTH REQ] Login Found: {url} (401 Unauthorized){UI.END}")
         except:
             pass
 
     def run_fuzzer(self):
-        """Phase 3: Sensitive File Fuzzing"""
+        """Phase 3: Smart Fuzzing"""
         print(f"\n{UI.CYAN}--- [ PHASE 3: SENSITIVE FILE DISCOVERY ] ---{UI.END}")
-        print(f"{UI.GREY}[*] Fuzzing for {len(CRITICAL_FILES)} critical artifacts...{UI.END}")
+        
+        target_list = []
+        if self.wordlist:
+            print(f"{UI.GREY}[*] Loading custom wordlist: {self.wordlist}...{UI.END}")
+            try:
+                with open(self.wordlist, 'r', encoding='utf-8', errors='ignore') as f:
+                    target_list = [line.strip() for line in f if line.strip()]
+            except FileNotFoundError:
+                print(f"{UI.RED}[!] Wordlist not found! Falling back to default list.{UI.END}")
+                target_list = DEFAULT_FILES
+        else:
+            print(f"{UI.GREY}[*] Using built-in default list ({len(DEFAULT_FILES)} artifacts)...{UI.END}")
+            target_list = DEFAULT_FILES
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            executor.map(self.fuzz_file, CRITICAL_FILES)
+        with ThreadPoolExecutor(max_workers=15) as executor:
+            executor.map(self.fuzz_file, target_list)
 
     def run(self):
         UI.banner()
@@ -158,9 +260,14 @@ class WebHunter:
         print(f"\n{UI.BOLD}{UI.GREEN}[√] RECONNAISSANCE COMPLETED.{UI.END}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="NOEMVEX-WEB: Hunter Edition")
+    parser = argparse.ArgumentParser(description="NOEMVEX-WEB: Stealth Hunter Edition v1.1")
     parser.add_argument('-u', '--url', required=True, help='Target URL (e.g., example.com)')
+    parser.add_argument('-w', '--wordlist', help='Custom wordlist path for directory fuzzing')
     args = parser.parse_args()
 
-    hunter = WebHunter(args.url)
-    hunter.run()
+    try:
+        hunter = WebHunter(args.url, args.wordlist)
+        hunter.run()
+    except KeyboardInterrupt:
+        print(f"\n{UI.RED}[!] Interrupted by user. Exiting scan safely...{UI.END}")
+        sys.exit(0)
