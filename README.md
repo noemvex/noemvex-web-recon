@@ -1,4 +1,4 @@
-# NOEMVEX-WEB v1.0 [HUNTER EDITION]
+# NOEMVEX-WEB v1.1 [STEALTH HUNTER EDITION]
 ![Python](https://img.shields.io/badge/Python-3.x-blue) ![License](https://img.shields.io/badge/License-MIT-grey) ![Focus](https://img.shields.io/badge/Focus-Web%20Recon-yellow) ![Type](https://img.shields.io/badge/Edition-Red%20Edition-red)
 
 > **"Ghost in the Machine."**
@@ -19,7 +19,7 @@
 
 
 ---
-## 🛠️ Usage
+##  Usage
 
 ### 1. Requirements
 pip install requests
@@ -40,7 +40,7 @@ python3 noemvex_web.py -u example.com -w /usr/share/wordlists/dirb/common.txt
     ██║╚██╗██║██║   ██║██╔══╝  ██║╚██╔╝██║╚██╗ ██╔╝██╔══╝   ██╔██╗ 
     ██║ ╚████║╚██████╔╝███████╗██║ ╚═╝ ██║ ╚████╔╝ ███████╗██╗  ██╗
     ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚═╝     ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
-                   [ NOEMVEX WEB RECON V1.0 STEALTH HUNTER EDITION ]
+                   [ NOEMVEX WEB RECON V1.1 STEALTH HUNTER EDITION ]
 
  [*] Checking connection to https://testphp.vulnweb.com...
  [!] HTTPS failed. Attempting Protocol Downgrade (HTTP)...
